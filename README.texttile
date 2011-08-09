@@ -1,0 +1,92 @@
+<pre><code> #######                          #####                                            
+      #   ####   ####  #    #    #     # ##### # #####  ####  #    # ###### #####  
+     #   #    # #    # ##  ##    #         #   #   #   #    # #    # #      #    # 
+    #    #    # #    # # ## #     #####    #   #   #   #      ###### #####  #    # 
+   #     #    # #    # #    #          #   #   #   #   #      #    # #      #####  
+  #      #    # #    # #    #    #     #   #   #   #   #    # #    # #      #   #  
+ #######  ####   ####  #    #     #####    #   #   #    ####  #    # ###### #    # </code></pre>
+ 
+Python functions for downloading, resizing, stitching together, and clipping GDAL-compatible geo-referenced raster graphics. I use this for creating video graphics from U.S. government NAIP and DOQQ imagery, but they can be modified for many applications.
+
+This definitely isn't production-ready code. Some things are hard-coded in places where they don't need to be, and uses os.system() calls where APIs could be used instead.
+ 
+h2. Features
+ 
+* Find imagery tiles that intersect one or more bounding boxes that you supply, using a coverage shapefile that has been exported to PostGIS.
+* Automatically download the matching tiles you need for a merged map image.
+* Merge the tiles into a single merged image, clipped to the exact bounding box, for each bounding box supplied. Tiles can be automatically resized so the final image doesn't exceed a maximum size you specify.
+ 
+h2. Requirements
+* A working PostGIS/PostgreSQL installation, with pgsql2shp able to run from the command line.
+* The GDAL, OGR and pyscopg2 software packages, with gdal_translate and gdalwarp able to run from the command line.
+* Tiled GeoTIFFs (can be modified to work with any GDAL-compatible raster).
+* A shapefile showing the tile coverage, which has been imported to PostGIS in the same SRID as the tiled imagery.
+ 
+h2. Usage
+
+I use this workflow to download and stitch together imagery for zoom-in effects for video. In most cases, I use 3 different images, each showing a smaller area with increasingly high resolution as the video zooms in further.
+
+Before anything else, you'll need to import the zoom_stitcher functions, and pyscopg2 so you can connect to PostGIS-enabled database.
+
+<code>import zoom_stitcher, psycopg2</code>
+
+Everything you're using should be in the same SRID, which should be whatever your imagery is using.
+
+<code>master_srid = '26911' #NAD 83 UTM Zone 11N = 26911</code>
+
+I make bounding boxes for each zoom level you want, translated into the same projection as your imagery. I usually do this with Quantum GIS. You can work with as many bounding boxes as you want, written as a list of tuples.
+
+<code>bounding_boxes = [
+    (
+         (528695, 3760675), #wide nw
+         (622141, 3667229) #wide se
+    ),(
+        (577169, 3717961), #mid nw
+        (604447, 3690683) #mid se
+    ),(
+         (585070, 3714373), #max zoom nw
+         (586640, 3712803) #max zoom se
+    ),
+]</code>
+
+Start a psycopg2 connection to a PostGIS-enabled database.
+
+<code>postgis_connection = psycopg2.connect('dbname=your_db_name user=your_db_user password=your_db_password')</code>
+
+To match imagery to your bounding boxes, you'll need to tell the functions the name of your imagery coverage table.
+
+<code>imagery_coverable_table_name = 'naip_ca_2010_nad83utm11n' #imagery coverage postgis table name</code>
+
+*To download matching imagery*
+
+First, find out which tiles match your coverage shapefile. Right now this is hardcoded for USDA NAIP imagery, but can be easily modified for other coverage shapefiles.
+
+<code>matching_tiles = zoom_stitcher.find_matching_tiles(bounding_boxes[0],master_srid,imagery_coverable_table_name,postgis_connection)</code>
+
+Now tell the script where to look for the imagery and where to put it, then download the matching imagery.
+
+<code>
+#Where to look for imagery
+remote_imagery_root = 'http://atlas.ca.gov/casil/imageryBaseMapsLandCover/imagery/naip/naip_2010/doqqs_combined_color-nir/' 
+
+#Root folder to where you want to put downloaded imagery.
+tile_download_destination = '/where/you/want/to/put/downloaded/imagery/' 
+
+#Now download the matching imagery
+zoom_stitcher.download_tiles(matching_tiles,remote_imagery_root,tile_download_destination)</code>
+
+*To resize, merge and clip imagery*
+<code>#Where to find local (already downloaded) imagery.
+local_imagery_root = '/generally/wherever/you/already/downloaded/images/to/' 
+
+#Destination folder for temp and stitched imagery. Right now I don't delete temp files in case you might want the (usually) resized version.
+render_destination = '/Users/semchie/Documents/GIS/usa/california/naip/2010/'
+
+max_stitched_width = 9000 #The script will keep your final stitched and clipped images below this
+max_stitched_height = 9000 #The script will keep your final stitched and clipped images below this
+
+#The name of your PostGIS database. The script creates and then deletes temporary PostGIS tables to generate the clipping shapefiles
+db_name = 'your_db_name'
+
+#The zoom_stitcher function resizes, merges and clips the tiles to your bounding boxes
+zoom_stitcher.zoom_stitcher(bounding_boxes,master_srid,imagery_coverable_table_name,render_destination,local_imagery_root,postgis_connection,db_name,max_stitched_width,max_stitched_height)</code>
