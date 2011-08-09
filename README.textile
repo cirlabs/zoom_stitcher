@@ -55,13 +55,13 @@ Start a psycopg2 connection to a PostGIS-enabled database.
 
 To match imagery to your bounding boxes, you'll need to tell the functions the name of your imagery coverage table.
 
-<pre><code>imagery_coverable_table_name = 'naip_ca_2010_nad83utm11n' #imagery coverage postgis table name</code></pre>
+<pre><code>imagery_coverage_table_name = 'naip_ca_2010_nad83utm11n' #imagery coverage postgis table name</code></pre>
 
 *To download matching imagery*
 
 First, find out which tiles match your coverage shapefile. Right now this is hardcoded for USDA NAIP imagery, but can be easily modified for other coverage shapefiles.
 
-<pre><code>matching_tiles = zoom_stitcher.find_matching_tiles(bounding_boxes[0],master_srid,imagery_coverable_table_name,postgis_connection)</code></pre>
+<pre><code>matching_tiles = zoom_stitcher.find_matching_tiles(bounding_boxes[0],master_srid,imagery_coverage_table_name,postgis_connection)</code></pre>
 
 Now tell the script where to look for the imagery and where to put it, then download the matching imagery.
 
@@ -89,4 +89,4 @@ Specify the name of your PostGIS database. The script creates and then deletes t
 <pre><code>db_name = 'your_db_name'</code></pre>
 
 The zoom_stitcher function resizes, merges and clips the tiles to your bounding boxes
-<pre><code>zoom_stitcher.zoom_stitcher(bounding_boxes,master_srid,imagery_coverable_table_name,render_destination,local_imagery_root,postgis_connection,db_name,max_stitched_width,max_stitched_height)</code></pre>
+<pre><code>zoom_stitcher.zoom_stitcher(bounding_boxes,master_srid,imagery_coverage_table_name,render_destination,local_imagery_root,postgis_connection,db_name,max_stitched_width,max_stitched_height)</code></pre>
