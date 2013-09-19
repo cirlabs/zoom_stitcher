@@ -21,6 +21,8 @@ h2. Requirements
 * The GDAL, OGR and pyscopg2 software packages, with gdal_translate and gdalwarp able to run from the command line.
 * Tiled GeoTIFFs (can be modified to work with any GDAL-compatible raster).
 * A shapefile showing the tile coverage, which has been imported to PostGIS in the same SRID as the tiled imagery.
+
+(A note on GDAL in Python: Running gdal in Python from a virtualenv can be tricky. You can try this http://tylerickson.blogspot.com/2011/09/installing-gdal-in-python-virtual.html, though it might be easier to install gdal's python bindings globally.)
  
 h2. Usage
 
